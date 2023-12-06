@@ -3,10 +3,135 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+        xmlns:cm="clr-namespace:System.ComponentModel;assembly=System"
         xmlns:local="clr-namespace:MLE"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
 
+        Title="Оценка временной задержки методом максимума правдоподобия" Height="450" Width="800"
+        RenderOptions.BitmapScalingMode="HighQuality"
+        WindowState="Maximized" FontSize="12" FontFamily="Roboto"
+        Loaded="OnLoadedMainWindow">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="4*" />
+            <ColumnDefinition Width="1.5*" />
+        </Grid.ColumnDefinitions>
+        
+        <GroupBox Grid.Column="0" Header="Графики">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <WpfPlot Grid.Row="0" Name="ChartDesiredSignal" FontFamily="JetBrains Mono" />
+                <WpfPlot Grid.Row="1" Name="ChartResearchedSignal" FontFamily="JetBrains Mono" />
+                <WpfPlot Grid.Row="2" Name="ChartCrossCorrelation" FontFamily="JetBrains Mono" />
+                <WpfPlot Grid.Row="0" Grid.RowSpan="3" Name="ChartResearch" FontFamily="JetBrains Mono" Visibility="Collapsed" />
+            </Grid>
+        </GroupBox>
+        
+        <StackPanel Grid.Column="1">
+            <!-- #################################################################################### -->
+            <Expander Header="Параметры несущей частоты" IsExpanded="True">
+                <StackPanel>
+                    <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
+                        <Label>Амплитуда (А), у.е.</Label>
+                        <xctk:DoubleUpDown Name="NudA0" TextAlignment="Right" Width="75" Height="25" Minimum="1" Maximum="1000" Increment="1" FormatString="F1" Value="10" />
+                    </WrapPanel>
+                    <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
+                        <Label>Частота (f₀), Гц</Label>
+                        <xctk:DoubleUpDown Name="NudF0" TextAlignment="Right" Width="75" Height="25" Minimum="100" Maximum="1000000" Increment="50" Value="500" />
+                    </WrapPanel>
+                    <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
+                        <Label>Начальная фаза (φ₀), рад</Label>
+                        <xctk:DoubleUpDown Name="NudPhi0" TextAlignment="Right" Width="75" Height="25" Minimum="0" Maximum="10" Increment="1" FormatString="F2" Value="0" />
+                    </WrapPanel>
+                    <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
+                        <Label>Частота дискретизации</Label>
+                        <xctk:DoubleUpDown Name="NudFd" TextAlignment="Right" Width="75" Height="25" Minimum="1000" Maximum="10000000" Increment="1000" Value="10000" />
+                    </WrapPanel>
+                    <CheckBox Name="CbIsNoise" HorizontalAlignment="Right" Margin="0 5 0 0"
+                              Click="OnCheckedCheckBoxIsNoise">
+                        Наложить шум?
+                    </CheckBox>
+                    <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
+                        <Label>ОСШ, дБ</Label>
+                        <xctk:DoubleUpDown Name="NudSnr" TextAlignment="Right"
+                                           Width="75" Height="25" IsEnabled="False"
+                                           Minimum="-100" Maximum="100" Increment="1" Value="0" />
+                    </WrapPanel>
+                </StackPanel>
+            </Expander>
+            <!-- #################################################################################### -->
+            <Expander Header="Параметры модуляции" IsExpanded="True">
+                <StackPanel>
+                    <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
+                        <Label>Начало вставки (номер бита)</Label>
+                        <xctk:IntegerUpDown Name="NudStartBit" TextAlignment="Right" Width="75" Height="25" Minimum="0" Maximum="10000" Increment="5" Value="25" />
+                    </WrapPanel>
+                    <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
+                        <Label>Общее число битов</Label>
+                        <xctk:IntegerUpDown Name="NudCountBits" TextAlignment="Right" Width="75" Height="25" Minimum="10" Maximum="10000" Increment="10" Value="200" />
+                    </WrapPanel>
+                    <RadioButton Content="Амплитудная манипуляция" Name="RbIsAsk" Margin="0 5 0 0" Checked="OnCheckedRbIsAsk" />
+                    <StackPanel Name="GbAskParams">
+                        <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
+                            <Label>Нижний порог амплитуды (А₁), у.е.</Label>
+                            <xctk:DoubleUpDown Name="NudA1" TextAlignment="Right" Width="75" Height="25" Minimum="0" Maximum="1000" Increment="1" FormatString="F1" Value="1" />
+                        </WrapPanel>
+                        <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
+                            <Label>Верхний порог амплитуды (А₂), у.е.</Label>
+                            <xctk:DoubleUpDown Name="NudA2" TextAlignment="Right" Width="75" Height="25" Minimum="0" Maximum="1000" Increment="1" FormatString="F1" Value="20" />
+                        </WrapPanel>
+                    </StackPanel>
+                    <RadioButton Content="Частотная манипуляция" Name="RbIsFsk" Margin="0 5 0 0" Checked="OnCheckedRbIsFsk" />
+                    <StackPanel Name="GbFskParams">
+                        <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
+                            <Label>Сдвиг по частосте (Δf), Гц</Label>
+                            <xctk:DoubleUpDown Name="NudDeltaF" TextAlignment="Right" Width="75" Height="25" Minimum="1" Maximum="10000" Increment="50" Value="50" />
+                        </WrapPanel>
+                    </StackPanel>
+                    <RadioButton Content="Фазовая манипуляция" Name="RbIsPsk" Margin="0 5 0 0" Checked="OnCheckedRbIsPsk" />
+                </StackPanel>
+            </Expander>
+            <Expander Header="Выходные характеристики">
+                <StackPanel>
+                    <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
+                        <Label>Сдвиг сигнала (ожидаемый), c</Label>
+                        <TextBox Name="TbInsertStartExpected"
+                                 TextAlignment="Right" VerticalContentAlignment="Center" IsReadOnly="True"
+                                 Width="75" Height="25" />
+                    </WrapPanel>
+                    <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
+                        <Label>Сдвиг сигнала (фактический), c</Label>
+                        <TextBox Name="TbInsertStartActual"
+                                 TextAlignment="Right" VerticalContentAlignment="Center" IsReadOnly="True"
+                                 Width="75" Height="25" />
+                    </WrapPanel>
+                </StackPanel>
+            </Expander>
+            <!-- #################################################################################### -->
+            <Button Name="ButtonGenerateSignal"
+                    Height="25" Margin="0 5 0 0"
+                    Click="OnGenerateSignal">
+                Сгенерировать
+            </Button>
+        </StackPanel>
     </Grid>
+    
+    <Window.Resources>
+        <cm:BackgroundWorker x:Key="BackgroundWorkerGenerateSignal"
+                             DoWork="OnDoWorkBackgroundWorkerGenerateSignal"
+                             RunWorkerCompleted="OnRunWorkerCompletedBackgroundWorkerGenerateSignal" />
+        <!-- <cm:BackgroundWorker x:Key="BackgroundWorkerConductResearch" -->
+                             <!-- WorkerReportsProgress="True" -->
+                             <!-- DoWork="OnDoWorkBackgroundWorkerConductResearch" -->
+                             <!-- RunWorkerCompleted="OnRunWorkerCompletedBackgroundWorkerConductResearch" -->
+                             <!-- ProgressChanged="OnProgressChangedBackgroundWorkerConductResearch"  -->
+                             <!-- /> -->
+    </Window.Resources>
 </Window>
