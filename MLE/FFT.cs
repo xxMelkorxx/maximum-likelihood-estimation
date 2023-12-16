@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Numerics;
 
-namespace Wiener_Filtering
+namespace MLE
 {
     /// <summary>
     /// Быстрое преобразование Фурье.
