@@ -25,6 +25,7 @@ namespace MLE
                 a0[j] = signal[i];
                 a1[j] = signal[i + 1];
             }
+
             FFT(ref a0, forward);
             FFT(ref a1, forward);
             var ang = 2 * Math.PI / n * (forward ? 1 : -1);
@@ -39,9 +40,11 @@ namespace MLE
                     signal[i] /= 2;
                     signal[i + n / 2] /= 2;
                 }
+
                 w *= wn;
             }
         }
+
         /// <summary>
         /// Реализация алгоритма БПФ Кули-Тьюки.
         /// </summary>

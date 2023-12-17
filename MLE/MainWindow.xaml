@@ -145,7 +145,7 @@
             <Expander Header="Параметры моделирования" IsExpanded="True">
                 <StackPanel>
                     <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
-                        <Label>Частота Доплера</Label>
+                        <Label>Частота Доплера, Гц</Label>
                         <xctk:DoubleUpDown Name="NudFDoppler" TextAlignment="Right" Width="75" Height="25" Minimum="0" Maximum="10000" Increment="100" Value="500" />
                     </WrapPanel>
                 </StackPanel>

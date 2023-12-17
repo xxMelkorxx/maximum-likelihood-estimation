@@ -31,7 +31,7 @@ public class SignalGenerator
     /// Число отсчётов.
     /// </summary>
     public int CountNumbers { get; set; }
-    
+
     public int CountBits { get; set; }
 
     /// <summary>
@@ -73,11 +73,10 @@ public class SignalGenerator
     /// Временной отрезок одного бита.
     /// </summary>
     public double tb => 1d / BPS;
-    
-    /// <summary>
-    /// Частота Допплера.
-    /// </summary>
-    public double freqDoppler { get; set; }
+
+    public double doppler { get; set; }
+
+    public int StartBit { get; set; }
 
     /// <summary>
     /// Цифровой сигнал.
@@ -103,7 +102,8 @@ public class SignalGenerator
         a0 = (double)@params["a0"];
         f0 = (double)@params["f0"];
         phi0 = (double)@params["phi0"];
-        freqDoppler = (double)@params["doppler"];
+        doppler = (double)@params["doppler"];
+        StartBit = (int)@params["startBit"];
 
         bitsSequence = new List<int>();
         ((List<int>)@params["bitsSequence"]).ForEach(b => bitsSequence.Add(b));
@@ -117,9 +117,9 @@ public class SignalGenerator
     {
         // Генерация длинного сигнала.
         var longBitsSequence = new List<int>();
-        GenerateBitsSequence((int)@params["startBit"]).ToList().ForEach(b => longBitsSequence.Add(b == '1' ? 1 : 0));
+        GenerateBitsSequence(StartBit).ToList().ForEach(b => longBitsSequence.Add(b == '1' ? 1 : 0));
         bitsSequence.ForEach(b => longBitsSequence.Add(b));
-        GenerateBitsSequence((int)@params["countBits"] - Nb - (int)@params["startBit"]).ToList().ForEach(b => longBitsSequence.Add(b == '1' ? 1 : 0));
+        GenerateBitsSequence(CountBits - Nb - StartBit).ToList().ForEach(b => longBitsSequence.Add(b == '1' ? 1 : 0));
 
         for (var i = 0; i < CountNumbers; i++)
         {
@@ -128,22 +128,47 @@ public class SignalGenerator
             var bi = longBitsSequence[bidx];
             var yi = Type switch
             {
-                ModulationType.ASK => (bi == 0 ? (double)@params["A1"] : (double)@params["A2"]) * Complex.Exp(Complex.ImaginaryOne * (pi2 * f0 * ti + phi0)),
-                ModulationType.FSK => a0 * Complex.Exp(Complex.ImaginaryOne * (pi2 * (f0 + (bi == 0 ? -1 : 1) * (double)@params["dF"]) * ti + phi0)),
-                ModulationType.PSK => a0 * Complex.Exp(Complex.ImaginaryOne * (pi2 * f0 * ti + phi0 + (bi == 1 ? double.Pi : 0))),
+                ModulationType.ASK => (bi == 0 ? (double)@params["A1"] : (double)@params["A2"]) * Complex.Exp(Complex.ImaginaryOne * (pi2 * (f0 + doppler) * ti + phi0)),
+                ModulationType.FSK => a0 * Complex.Exp(Complex.ImaginaryOne * (pi2 * (f0 + (bi == 0 ? -1 : 1) * (double)@params["dF"] + doppler) * ti + phi0)),
+                ModulationType.PSK => a0 * Complex.Exp(Complex.ImaginaryOne * (pi2 * (f0 + doppler) * ti + phi0 + (bi == 1 ? Math.PI : 0))),
                 _ => 0
             };
             researchedSignal.Add(new Pair<Complex>(ti, yi));
 
             // Вставка сигнала.
-            if (bidx >= (int)@params["startBit"] && bidx < (int)@params["startBit"] + Nb)
+            if (bidx >= StartBit && bidx < StartBit + Nb)
             {
-                bitsSignal.Add(new Pair<double>(ti - (int)@params["startBit"] * tb, bi));
-                desiredSignal.Add(new Pair<Complex>(ti - (int)@params["startBit"] * tb, yi));
+                yi = Type switch
+                {
+                    ModulationType.ASK => (bi == 0 ? (double)@params["A1"] : (double)@params["A2"]) * Complex.Exp(Complex.ImaginaryOne * (pi2 * f0 * ti + phi0)),
+                    ModulationType.FSK => a0 * Complex.Exp(Complex.ImaginaryOne * (pi2 * (f0 + (bi == 0 ? -1 : 1) * (double)@params["dF"]) * ti + phi0)),
+                    ModulationType.PSK => a0 * Complex.Exp(Complex.ImaginaryOne * (pi2 * f0 * ti + phi0 + (bi == 1 ? Math.PI : 0))),
+                    _ => 0
+                };
+                bitsSignal.Add(new Pair<double>(ti - StartBit * tb, bi));
+                desiredSignal.Add(new Pair<Complex>(ti - StartBit * tb, yi));
             }
         }
     }
 
+    /// <summary>
+    /// Взаимная корреляция искомого и исследуемого сигнала.
+    /// </summary>
+    /// <returns></returns>
+    public void MLE()
+    {
+        for (var i = 0; i < researchedSignal.Count - desiredSignal.Count + 1; i++)
+        {
+            var array = new List<Complex>();
+            var corr = Complex.Zero;
+            for (var j = 0; j < desiredSignal.Count; j++)
+                corr += researchedSignal[i + j].Y * desiredSignal[j].Y;
+            array.Add(corr / desiredSignal.Count);
+
+            var fft = FFTClass.FFT(array.ToArray());
+        }
+    }   
+    
     /// <summary>
     /// Генерация случайного числа с нормальным распределением.
     /// </summary>

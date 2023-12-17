@@ -89,7 +89,10 @@ namespace MLE
             var bitsSequence = new List<int>();
             TbBitsSequence.Text.Replace(" ", "").ToList().ForEach(b => bitsSequence.Add(b == '1' ? 1 : 0));
             _params1["bitsSequence"] = bitsSequence;
-
+            
+            // Инициализация генератора сигнала.
+            _signalGenerator = new SignalGenerator(_params1);
+            
             ButtonGenerateSignal.IsEnabled = false;
             _bgGenerateSignal.RunWorkerAsync();
         }
@@ -99,9 +102,7 @@ namespace MLE
             try
             {
                 // Формирование модулированного сигнала.
-                _signalGenerator = new SignalGenerator(_params1);
                 _signalGenerator.GenerateSignals(_params1);
-
                 // Наложение шума на сигналы.
                 if (_isNoise)
                     _signalGenerator.MakeNoise((double)_params1["SNR"]);
